@@ -1,0 +1,13 @@
+{
+  "treinado_em": "2026-11-06T22:27:59.381249+00:00",
+  "n_amostras": 358,
+  "test_size": 0.2,
+  "cv_f1_macro_media": 0.8904,
+  "cv_f1_macro_std": 0.0317,
+  "teste_acuracia": 0.9583,
+  "teste_f1_macro": 0.9583,
+  "classes": [
+    "negativo",
+    "positivo"
+  ]
+}
