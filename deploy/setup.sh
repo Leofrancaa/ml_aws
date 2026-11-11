@@ -37,6 +37,6 @@ EOF
 
 systemctl daemon-reload
 systemctl enable --now ml-api
-sleep 3
-curl -fsS "http://localhost:$PORT/health" && echo
+# espera a API carregar o modelo (até ~60s em instância pequena)
+for _ in $(seq 30); do curl -fsS "http://localhost:$PORT/health" && echo && break; sleep 2; done
 echo "OK -> http://$(curl -fsS --max-time 2 http://checkip.amazonaws.com 2>/dev/null || echo '<IP-PUBLICO>'):$PORT"
