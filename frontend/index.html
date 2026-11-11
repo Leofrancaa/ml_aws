@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Análise de Sentimento</title>
+<style>
+  :root { --bg:#f5f6f8; --card:#fff; --txt:#1d2330; --muted:#6b7280; --acc:#2563eb; --pos:#15803d; --neg:#b91c1c; --bd:#e5e7eb; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background:var(--bg); color:var(--txt); }
+  main { max-width: 640px; margin: 48px auto; padding: 0 16px; }
+  h1 { font-size: 1.5rem; margin: 0 0 4px; }
+  p.sub { color: var(--muted); margin: 0 0 24px; }
+  .card { background:var(--card); border:1px solid var(--bd); border-radius:12px; padding:20px; }
+  textarea { width:100%; min-height:110px; padding:12px; font:inherit; border:1px solid var(--bd); border-radius:8px; resize:vertical; }
+  textarea:focus { outline:2px solid var(--acc); border-color:transparent; }
+  .row { display:flex; gap:8px; margin-top:12px; align-items:center; }
+  button { background:var(--acc); color:#fff; border:0; border-radius:8px; padding:10px 18px; font:inherit; font-weight:600; cursor:pointer; }
+  button:disabled { opacity:.6; cursor:default; }
+  .hint { color:var(--muted); font-size:.85rem; }
+  ul { list-style:none; padding:0; margin:20px 0 0; display:grid; gap:8px; }
+  li { background:var(--card); border:1px solid var(--bd); border-left:4px solid var(--bd); border-radius:8px; padding:12px 14px; }
+  li.positivo { border-left-color:var(--pos); }
+  li.negativo { border-left-color:var(--neg); }
+  .tag { font-weight:700; text-transform:uppercase; font-size:.8rem; }
+  .positivo .tag { color:var(--pos); }
+  .negativo .tag { color:var(--neg); }
+  .conf { color:var(--muted); font-size:.85rem; margin-left:6px; }
+  .txt { margin-top:4px; }
+  .err { color:var(--neg); margin-top:12px; }
+  footer { margin-top:24px; color:var(--muted); font-size:.8rem; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Análise de Sentimento</h1>
+  <p class="sub">Classifica comentários em português como positivos ou negativos.</p>
+
+  <div class="card">
+    <textarea id="entrada" placeholder="Um comentário por linha.&#10;Ex.: Adorei o produto, chegou rápido!"></textarea>
+    <div class="row">
+      <button id="btn">Analisar</button>
+      <span class="hint">Ctrl+Enter para enviar</span>
+    </div>
+    <div id="erro" class="err" hidden></div>
+  </div>
+
+  <ul id="resultados"></ul>
+
+  <footer>API: <a href="/docs">/docs</a> · <span id="status">verificando…</span></footer>
+</main>
+
+<script>
+const $ = (id) => document.getElementById(id);
+
+async function analisar() {
+  const textos = $("entrada").value.split("\n").map(t => t.trim()).filter(Boolean);
+  $("erro").hidden = true;
+  if (!textos.length) return;
+
+  $("btn").disabled = true;
+  try {
+    const r = await fetch("/predict", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ textos }),
+    });
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    const { predicoes } = await r.json();
+
+    const ul = $("resultados");
+    ul.replaceChildren(...predicoes.map(p => {
+      const li = document.createElement("li");
+      li.className = p.sentimento;
+      const tag = document.createElement("span"); tag.className = "tag"; tag.textContent = p.sentimento;
+      const conf = document.createElement("span"); conf.className = "conf";
+      conf.textContent = p.confianca != null ? `${(p.confianca * 100).toFixed(1)}%` : "";
+      const txt = document.createElement("div"); txt.className = "txt"; txt.textContent = p.texto;
+      li.append(tag, conf, txt);
+      return li;
+    }));
+  } catch (e) {
+    $("erro").textContent = "Erro ao chamar a API: " + e.message;
+    $("erro").hidden = false;
+  } finally {
+    $("btn").disabled = false;
+  }
+}
+
+$("btn").addEventListener("click", analisar);
+$("entrada").addEventListener("keydown", e => { if (e.key === "Enter" && e.ctrlKey) analisar(); });
+
+fetch("/health").then(r => r.json())
+  .then(d => $("status").textContent = "API " + d.status)
+  .catch(() => $("status").textContent = "API offline");
+</script>
+</body>
+</html>

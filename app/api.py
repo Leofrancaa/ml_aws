@@ -3,10 +3,12 @@ from pathlib import Path
 
 import joblib
 from fastapi import FastAPI
+from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
 ROOT = Path(__file__).resolve().parent.parent
 MODEL_PATH = Path(os.getenv("MODEL_PATH", ROOT / "models" / "modelo_sentimento.joblib"))
+FRONTEND = ROOT / "frontend" / "index.html"
 
 model = joblib.load(MODEL_PATH)
 
@@ -25,6 +27,11 @@ class Prediction(BaseModel):
 
 class PredictResponse(BaseModel):
     predicoes: list[Prediction]
+
+
+@app.get("/", include_in_schema=False)
+def index():
+    return FileResponse(FRONTEND)
 
 
 @app.get("/health")
